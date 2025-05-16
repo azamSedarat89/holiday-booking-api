@@ -39,7 +39,7 @@ describe('UsersService', () => {
       role: UserRole.USER,
       bookings: [],
     })),
-    find: jest.fn().mockResolvedValue(mockUsers),
+    findAndCount: jest.fn().mockResolvedValue([mockUsers, mockUsers.length]),
     findOneBy: jest.fn((criteria) => {
       const found = mockUsers.find((u) => u.id === criteria.id);
       return Promise.resolve(found ?? null);
@@ -74,7 +74,7 @@ describe('UsersService', () => {
       };
 
       const hashSpy = jest
-        .spyOn(bcrypt, 'hash' as never)
+        .spyOn(bcrypt, 'hash')
         .mockResolvedValue('hashed_password' as never);
 
       const result = await service.create(createUserDto);
@@ -92,8 +92,9 @@ describe('UsersService', () => {
   describe('findAll', () => {
     it('should return all users', async () => {
       const result = await service.findAll();
-      expect(result).toHaveLength(2);
-      expect(mockRepository.find).toHaveBeenCalled();
+      expect(result.users).toHaveLength(2); // چون AllUserDto برمی‌گرده
+      expect(result.count).toBe(2);
+      expect(mockRepository.findAndCount).toHaveBeenCalled();
     });
   });
 

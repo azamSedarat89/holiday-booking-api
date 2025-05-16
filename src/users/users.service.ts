@@ -4,8 +4,8 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserDto } from './dto/user.dto';
-import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
+import { AllUserDto } from './dto/all-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -27,12 +27,12 @@ export class UsersService {
     });
 
     const savedUser = await this.usersRepository.save(user);
-    return plainToInstance(UserDto, savedUser);
+    return new UserDto(savedUser);
   }
 
-  async findAll(): Promise<UserDto[]> {
-    const users = await this.usersRepository.find();
-    return plainToInstance(UserDto, users);
+  async findAll(): Promise<AllUserDto> {
+    const [users, count] = await this.usersRepository.findAndCount();
+    return new AllUserDto(users, count);
   }
 
   async findOne(id: number): Promise<UserDto> {
@@ -40,6 +40,10 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    return plainToInstance(UserDto, user);
+    return new UserDto(user);
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.usersRepository.findOneBy({ email });
   }
 }
