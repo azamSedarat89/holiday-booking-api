@@ -38,6 +38,9 @@ export class Booking {
   })
   status: BookingStatus;
 
+  @Column({ nullable: true })
+  transactionId?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }

@@ -11,6 +11,7 @@ import { UpdateBookingDto } from './dto/update-booking.dto';
 import { DestinationsService } from '../destinations/destinations.service';
 import { UsersService } from '../users/users.service';
 import { BookingStatus } from './enum/bookking-status.enum';
+import { PaymentService } from 'src/payments/payment.service';
 
 @Injectable()
 export class BookingsService {
@@ -19,6 +20,7 @@ export class BookingsService {
     private bookingRepository: Repository<Booking>,
     private destinationsService: DestinationsService,
     private usersService: UsersService,
+    private readonly paymentService: PaymentService,
   ) {}
 
   async create(userId: number, createDto: CreateBookingDto): Promise<Booking> {
@@ -60,13 +62,20 @@ export class BookingsService {
       1;
     const totalPrice = daysCount * destination.price;
 
+    // **شبیه‌سازی پرداخت**
+    const payment = await this.paymentService.processPayment(totalPrice);
+    if (payment.status === 'failed') {
+      throw new BadRequestException(`Payment failed: ${payment.errorMessage}`);
+    }
+
     const booking = this.bookingRepository.create({
       user,
       destination,
       startDate,
       endDate,
       totalPrice,
-      status: BookingStatus.PENDING,
+      status: BookingStatus.CONFIRMED,
+      transactionId: payment.transactionId,
     });
 
     return this.bookingRepository.save(booking);
