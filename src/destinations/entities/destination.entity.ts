@@ -10,12 +10,15 @@ export class Destination {
   name: string;
 
   @Column()
+  description: string;
+
+  @Column()
   location: string;
 
   @Column('decimal')
   price: number;
 
-  @Column({ default: 0 })
+  @Column('decimal', { precision: 2, scale: 1, default: 0 })
   rating: number;
 
   @OneToMany(() => Booking, (booking) => booking.destination)
