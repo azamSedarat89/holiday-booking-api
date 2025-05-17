@@ -16,14 +16,14 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @SwaggerFindAll('Get all users', AllUserDto)
+  @SwaggerFindAll('user', AllUserDto)
   @Roles(UserRole.ADMIN)
   findAll() {
     return this.usersService.findAll();
   }
 
   @Get(':id')
-  @SwaggerFindOne('Get a user by ID', UserDto)
+  @SwaggerFindOne('user', UserDto)
   @Roles(UserRole.ADMIN)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);

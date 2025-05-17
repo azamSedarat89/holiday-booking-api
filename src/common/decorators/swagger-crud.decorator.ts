@@ -4,43 +4,55 @@ import {
   ApiResponse,
   ApiOkResponse,
   ApiNotFoundResponse,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
-export function SwaggerCreate(summary: string, dto: Type) {
+export function SwaggerCreate(entity: string, dto: Type, summary?: string) {
   return applyDecorators(
-    ApiOperation({ summary }),
+    ApiOperation({ summary: summary || `Create a new ${entity}` }),
     ApiResponse({ status: 201, type: dto }),
-    ApiNotFoundResponse({ description: 'Resource not found' }),
+    ApiBadRequestResponse({ description: 'Bad request' }),
+    ApiUnauthorizedResponse({ description: 'Unauthorized' }),
+    ApiNotFoundResponse({ description: `${entity} not found` }),
   );
 }
 
-export function SwaggerFindAll(summary: string, dto: Type) {
+export function SwaggerFindAll(entity: string, dto: Type, summary?: string) {
   return applyDecorators(
-    ApiOperation({ summary }),
-    ApiOkResponse({ type: [dto] }),
+    ApiOperation({ summary: summary || `Get all ${entity}s` }),
+    ApiOkResponse({
+      description: `List of ${entity}s returned successfully`,
+      type: [dto],
+    }),
+    ApiUnauthorizedResponse({ description: 'Unauthorized' }),
   );
 }
 
-export function SwaggerFindOne(summary: string, dto: Type) {
+export function SwaggerFindOne(entity: string, dto: Type, summary?: string) {
   return applyDecorators(
-    ApiOperation({ summary }),
+    ApiOperation({ summary: summary || `Get ${entity} by ID` }),
     ApiOkResponse({ type: dto }),
-    ApiNotFoundResponse({ description: 'Resource not found' }),
+    ApiNotFoundResponse({ description: `${entity} not found` }),
+    ApiUnauthorizedResponse({ description: 'Unauthorized' }),
   );
 }
 
-export function SwaggerUpdate(summary: string, dto: Type) {
+export function SwaggerUpdate(entity: string, dto: Type, summary?: string) {
   return applyDecorators(
-    ApiOperation({ summary }),
+    ApiOperation({ summary: summary || `Update a ${entity} by ID` }),
     ApiOkResponse({ type: dto }),
-    ApiNotFoundResponse({ description: 'Resource not found' }),
+    ApiBadRequestResponse({ description: 'Bad request' }),
+    ApiNotFoundResponse({ description: `${entity} not found` }),
+    ApiUnauthorizedResponse({ description: 'Unauthorized' }),
   );
 }
 
-export function SwaggerDelete(summary: string) {
+export function SwaggerDelete(entity: string, summary?: string) {
   return applyDecorators(
-    ApiOperation({ summary }),
+    ApiOperation({ summary: summary || `Delete a ${entity} by ID` }),
     ApiOkResponse({ schema: { example: { deleted: true } } }),
-    ApiNotFoundResponse({ description: 'Resource not found' }),
+    ApiNotFoundResponse({ description: `${entity} not found` }),
+    ApiUnauthorizedResponse({ description: 'Unauthorized' }),
   );
 }

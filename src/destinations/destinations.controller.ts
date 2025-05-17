@@ -31,14 +31,18 @@ export class DestinationsController {
 
   @Roles(UserRole.ADMIN)
   @Post()
-  @SwaggerCreate('Create a new destination', DestinationDto)
+  @SwaggerCreate('destination', DestinationDto)
   async create(@Body() dto: CreateDestinationDto): Promise<DestinationDto> {
     const destination = await this.service.create(dto);
     return new DestinationDto(destination);
   }
 
   @Get()
-  @SwaggerFindAll('List destinations with filters', DestinationDto)
+  @SwaggerFindAll(
+    'destinations',
+    DestinationDto,
+    'List destinations with filters',
+  )
   async findAll(
     @Query() filters: DestinationFilterDto,
   ): Promise<DestinationDto[]> {
@@ -47,7 +51,7 @@ export class DestinationsController {
   }
 
   @Get(':id')
-  @SwaggerFindOne('Get a destination by ID', DestinationDto)
+  @SwaggerFindOne('destination', DestinationDto)
   async findOne(@Param('id') id: number): Promise<DestinationDto> {
     const destination = await this.service.findOne(id);
     return new DestinationDto(destination);
@@ -55,7 +59,7 @@ export class DestinationsController {
 
   @Roles(UserRole.ADMIN)
   @Patch(':id')
-  @SwaggerUpdate('Update a destination', DestinationDto)
+  @SwaggerUpdate('destination', DestinationDto)
   async update(
     @Param('id') id: number,
     @Body() dto: UpdateDestinationDto,
@@ -66,7 +70,7 @@ export class DestinationsController {
 
   @Roles(UserRole.ADMIN)
   @Delete(':id')
-  @SwaggerDelete('Delete a destination')
+  @SwaggerDelete('destination')
   remove(@Param('id') id: number): Promise<{ deleted: boolean }> {
     return this.service.remove(id);
   }
