@@ -67,7 +67,6 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current authenticated user' })
   @ApiResponse({
     status: 200,

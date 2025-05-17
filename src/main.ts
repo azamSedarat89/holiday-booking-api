@@ -18,10 +18,19 @@ async function bootstrap() {
     .setTitle('Holiday Booking API')
     .setDescription('API documentation for the holiday booking system')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+      'JWT-auth',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+  document.security = [{ 'JWT-auth': [] }];
+
   SwaggerModule.setup('api', app, document);
 
   await app.listen(3000);
