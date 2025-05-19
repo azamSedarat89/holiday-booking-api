@@ -16,11 +16,11 @@
 - **Language:** TypeScript
 - **Database:** PostgreSQL
 - **ORM:** TypeORM
-- **Authentication:** JWT + Passport
+- **Authentication:** JWT
 - **Validation:** Joi
 - **Hashing:** bcrypt
 - **Environment Management:** dotenv
-- **Testing:** Jest, Supertest
+- **Testing:** Jest
 
 ---
 
@@ -38,8 +38,14 @@ Create a `.env` file in the root and configure your environment variables like:
 
 ```env
 PORT=3000
-DATABASE_URL=postgres://username:password@localhost:5432/holiday_db
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=123456
+DB_NAME=holiday_booking
 JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=1h
+
 ```
 
 ### 3. Run the application
@@ -59,12 +65,6 @@ npm run start:prod
 ```bash
 # Unit tests
 npm run test
-
-# E2E tests
-npm run test:e2e
-
-# Coverage
-npm run test:cov
 ```
 
 ---
@@ -73,13 +73,21 @@ npm run test:cov
 
 ```
 src/
-├── auth/              → Authentication logic (JWT, Passport)
+├── auth/              → Authentication logic (JWT)
 ├── users/             → User entity, service, controller
 ├── bookings/          → Booking logic for holidays
+├── payment/           → Payment handling (e.g., service)
 ├── database/          → TypeORM configuration
-├── common/            → DTOs, guards, interceptors
+├── common/            → decorators, interface
+├── doc/               → Project documentation
+│   ├── sequence/          → Sequence diagrams (*.drawio, *.png)
+│   ├── auth-flow/         → Auth flow charts (*.drawio, *.png)
+│   ├── architecture/      → High-level architecture diagrams (*.drawio, *.png)
+│   └── erd/               → Entity-Relationship diagrams (*.drawio, *.png)
 ├── app.module.ts      → Root module
 ├── main.ts            → Entry point
+
+
 ```
 
 ---
