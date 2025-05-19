@@ -7,6 +7,7 @@ import {
   Delete,
   Patch,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -21,6 +22,9 @@ import {
   SwaggerUpdate,
 } from 'src/common/decorators/swagger-crud.decorator';
 import { BookingDto } from './dto/booking.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { UserRole } from 'src/users/enum/user-role.enum';
 
 @ApiTags('bookings')
 @ApiBearerAuth()
@@ -41,8 +45,10 @@ export class BookingsController {
     return new BookingDto(booking);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Get()
-  @SwaggerFindAll('booking', BookingDto)
+  @SwaggerFindAll('booking', BookingDto, ' list of booking (admin-only)')
   async findAll(@UserAuth('sub') userId: number): Promise<BookingDto[]> {
     const bookings = await this.bookingsService.findAll(+userId);
     return bookings.map((booking) => new BookingDto(booking));

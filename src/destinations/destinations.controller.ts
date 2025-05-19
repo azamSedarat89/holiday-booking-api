@@ -7,6 +7,7 @@ import {
   Delete,
   Patch,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { DestinationsService } from './destinations.service';
 import { CreateDestinationDto } from './dto/create-destination.dto';
@@ -23,15 +24,21 @@ import {
   SwaggerUpdate,
 } from 'src/common/decorators/swagger-crud.decorator';
 import { DestinationFilterDto } from './dto/destination-filter.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @ApiTags('destinations')
 @Controller('destinations')
 export class DestinationsController {
   constructor(private readonly service: DestinationsService) {}
 
+  @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @Post()
-  @SwaggerCreate('destination', DestinationDto)
+  @SwaggerCreate(
+    'destination',
+    DestinationDto,
+    'create a destination (admin-only)',
+  )
   async create(@Body() dto: CreateDestinationDto): Promise<DestinationDto> {
     const destination = await this.service.create(dto);
     return new DestinationDto(destination);
@@ -57,9 +64,14 @@ export class DestinationsController {
     return new DestinationDto(destination);
   }
 
+  @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @Patch(':id')
-  @SwaggerUpdate('destination', DestinationDto)
+  @SwaggerUpdate(
+    'destination',
+    DestinationDto,
+    'update a destination (admin-only)',
+  )
   async update(
     @Param('id') id: number,
     @Body() dto: UpdateDestinationDto,
@@ -68,9 +80,10 @@ export class DestinationsController {
     return new DestinationDto(destination);
   }
 
+  @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @Delete(':id')
-  @SwaggerDelete('destination')
+  @SwaggerDelete('destination', 'remove a destination (admin-only)')
   remove(@Param('id') id: number): Promise<{ deleted: boolean }> {
     return this.service.remove(id);
   }

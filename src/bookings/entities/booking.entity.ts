@@ -23,13 +23,13 @@ export class Booking {
   destination: Destination;
 
   @Column({ type: 'date' })
-  startDate: string;
+  start_date: string;
 
   @Column({ type: 'date' })
-  endDate: string;
+  end_date: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  totalPrice: number;
+  total_price: number;
 
   @Column({
     type: 'enum',
@@ -39,8 +39,8 @@ export class Booking {
   status: BookingStatus;
 
   @Column({ nullable: true })
-  transactionId?: string;
+  transaction_id?: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 }

@@ -1,54 +1,74 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Brackets } from 'typeorm';
 import { Destination } from './entities/destination.entity';
 import { CreateDestinationDto } from './dto/create-destination.dto';
 import { UpdateDestinationDto } from './dto/update-destination.dto';
 import { DestinationFilterDto } from './dto/destination-filter.dto';
 
+/**
+ * Service responsible for CRUD & query operations on Destination entity.
+ */
 @Injectable()
 export class DestinationsService {
   constructor(
     @InjectRepository(Destination)
-    private destRepo: Repository<Destination>,
+    private readonly destRepo: Repository<Destination>,
   ) {}
 
-  create(dto: CreateDestinationDto) {
+  /** Create a new destination */
+  async create(dto: CreateDestinationDto): Promise<Destination> {
     const dest = this.destRepo.create(dto);
     return this.destRepo.save(dest);
   }
 
-  findAll(filters: DestinationFilterDto) {
+  /**
+   * Retrieve destinations using optional filters.
+   * All numeric filters validate that min <= max when both provided.
+   */
+  async findAll(filters: DestinationFilterDto = {}): Promise<Destination[]> {
     const { minPrice, maxPrice, location, minRating } = filters;
+
+    if (minPrice != null && maxPrice != null && minPrice > maxPrice) {
+      throw new BadRequestException('minPrice cannot exceed maxPrice');
+    }
 
     const qb = this.destRepo.createQueryBuilder('d');
 
-    if (minPrice != null)
-      qb.andWhere('d.price >= :minPrice', { minPrice: minPrice });
-    if (maxPrice != null)
-      qb.andWhere('d.price <= :maxPrice', { maxPrice: maxPrice });
-    if (location) {
-      qb.andWhere('d.location ILIKE :location', { location });
-    }
-    if (minRating != null)
-      qb.andWhere('d.rating >= :minRating', { minRating: minRating });
+    qb.where(
+      new Brackets((qb) => {
+        if (minPrice != null) qb.andWhere('d.price >= :minPrice', { minPrice });
+        if (maxPrice != null) qb.andWhere('d.price <= :maxPrice', { maxPrice });
+        if (location)
+          qb.andWhere('d.location ILIKE :loc', { loc: `%${location}%` });
+        if (minRating != null)
+          qb.andWhere('d.rating >= :minRating', { minRating });
+      }),
+    );
 
-    return qb.getMany();
+    return qb.orderBy('d.created_at', 'DESC').getMany();
   }
 
-  async findOne(id: number) {
-    const dest = await this.destRepo.findOneBy({ id });
+  /** Fetch single destination or 404 */
+  async findOne(id: number): Promise<Destination> {
+    const dest = await this.destRepo.findOne({ where: { id } });
     if (!dest) throw new NotFoundException(`Destination ${id} not found`);
     return dest;
   }
 
-  async update(id: number, dto: UpdateDestinationDto) {
+  /** Update mutable fields of a destination */
+  async update(id: number, dto: UpdateDestinationDto): Promise<Destination> {
     const dest = await this.findOne(id);
     Object.assign(dest, dto);
     return this.destRepo.save(dest);
   }
 
-  async remove(id: number) {
+  /** Hard‑delete destination (consider soft‑delete for prod) */
+  async remove(id: number): Promise<{ deleted: boolean }> {
     const dest = await this.findOne(id);
     await this.destRepo.remove(dest);
     return { deleted: true };

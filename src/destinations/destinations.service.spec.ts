@@ -3,7 +3,7 @@ import { DestinationsService } from './destinations.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Destination } from './entities/destination.entity';
 import { Repository } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateDestinationDto } from './dto/create-destination.dto';
 import { UpdateDestinationDto } from './dto/update-destination.dto';
 
@@ -20,6 +20,7 @@ describe('DestinationsService', () => {
       price: 100,
       rating: 4.5,
       bookings: [],
+      created_at: new Date(),
     },
     {
       id: 2,
@@ -29,22 +30,36 @@ describe('DestinationsService', () => {
       price: 200,
       rating: 3.8,
       bookings: [],
+      created_at: new Date(),
     },
   ];
 
   beforeEach(async () => {
+    const createQueryBuilderMock = {
+      where: jest.fn(function (this: any, arg: any) {
+        if (
+          arg &&
+          typeof arg === 'object' &&
+          typeof arg.whereFactory === 'function'
+        ) {
+          arg.whereFactory(this);
+        }
+        return this;
+      }),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue(mockDestinations),
+    };
+
     repo = {
       create: jest.fn().mockImplementation((dto) => dto),
       save: jest.fn().mockImplementation(async (dest) => ({ id: 1, ...dest })),
-      findOneBy: jest
+      findOne: jest
         .fn()
-        .mockImplementation(({ id }) =>
+        .mockImplementation(({ where: { id } }) =>
           Promise.resolve(mockDestinations.find((d) => d.id === id) || null),
         ),
-      createQueryBuilder: jest.fn().mockReturnValue({
-        andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue(mockDestinations),
-      }),
+      createQueryBuilder: jest.fn().mockReturnValue(createQueryBuilderMock),
       remove: jest.fn().mockResolvedValue(null),
     };
 
@@ -55,7 +70,7 @@ describe('DestinationsService', () => {
       ],
     }).compile();
 
-    service = module.get(DestinationsService);
+    service = module.get<DestinationsService>(DestinationsService);
   });
 
   describe('create', () => {
@@ -82,9 +97,26 @@ describe('DestinationsService', () => {
     });
 
     it('should apply filters', async () => {
-      await service.findAll({ minPrice: 100, location: 'Loc A' });
+      const filters = { minPrice: 100, location: 'Loc A' };
+      const result = await service.findAll(filters);
+
       const qb = (repo.createQueryBuilder as jest.Mock).mock.results[0].value;
-      expect(qb.andWhere).toHaveBeenCalled();
+
+      expect(qb.where).toHaveBeenCalled();
+      expect(qb.andWhere).toHaveBeenCalledWith('d.price >= :minPrice', {
+        minPrice: 100,
+      });
+      expect(qb.andWhere).toHaveBeenCalledWith('d.location ILIKE :loc', {
+        loc: `%Loc A%`,
+      });
+      expect(qb.orderBy).toHaveBeenCalled();
+      expect(result).toEqual(mockDestinations);
+    });
+
+    it('should throw BadRequestException if minPrice > maxPrice', async () => {
+      await expect(
+        service.findAll({ minPrice: 200, maxPrice: 100 }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -94,7 +126,7 @@ describe('DestinationsService', () => {
       expect(dest.id).toBe(1);
     });
     it('should throw NotFoundException if not found', async () => {
-      (repo.findOneBy as jest.Mock).mockResolvedValue(null);
+      (repo.findOne as jest.Mock).mockResolvedValueOnce(null);
       await expect(service.findOne(99)).rejects.toThrow(NotFoundException);
     });
   });
@@ -107,7 +139,7 @@ describe('DestinationsService', () => {
       expect(result.price).toBe(180);
     });
     it('should throw NotFoundException if not found', async () => {
-      (repo.findOneBy as jest.Mock).mockResolvedValue(null);
+      (repo.findOne as jest.Mock).mockResolvedValueOnce(null);
       await expect(service.update(99, {})).rejects.toThrow(NotFoundException);
     });
   });
@@ -119,7 +151,7 @@ describe('DestinationsService', () => {
       expect(res).toEqual({ deleted: true });
     });
     it('should throw NotFoundException if not found', async () => {
-      (repo.findOneBy as jest.Mock).mockResolvedValue(null);
+      (repo.findOne as jest.Mock).mockResolvedValueOnce(null);
       await expect(service.remove(99)).rejects.toThrow(NotFoundException);
     });
   });

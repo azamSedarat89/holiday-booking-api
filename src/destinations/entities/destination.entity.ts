@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  CreateDateColumn,
+} from 'typeorm';
 import { Booking } from '../../bookings/entities/booking.entity';
 
 @Entity()
@@ -20,6 +26,9 @@ export class Destination {
 
   @Column('decimal', { precision: 2, scale: 1, default: 0 })
   rating: number;
+
+  @CreateDateColumn()
+  created_at: Date;
 
   @OneToMany(() => Booking, (booking) => booking.destination)
   bookings: Booking[];

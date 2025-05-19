@@ -9,7 +9,7 @@ export class UpdateBookingDto {
   })
   @IsDateString()
   @IsOptional()
-  startDate?: string;
+  start_date?: string;
 
   @ApiProperty({
     example: '2025-06-06',
@@ -18,5 +18,5 @@ export class UpdateBookingDto {
   })
   @IsDateString()
   @IsOptional()
-  endDate?: string;
+  end_date?: string;
 }

@@ -8,9 +8,9 @@ export class CreateBookingDto {
 
   @ApiProperty({ example: '2025-06-01', description: 'Start date of booking' })
   @IsDateString()
-  startDate: string;
+  start_date: string;
 
   @ApiProperty({ example: '2025-06-05', description: 'End date of booking' })
   @IsDateString()
-  endDate: string;
+  end_date: string;
 }

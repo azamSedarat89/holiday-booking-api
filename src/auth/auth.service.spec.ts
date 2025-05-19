@@ -19,6 +19,7 @@ describe('AuthService', () => {
     name: 'Test User',
     role: UserRole.USER,
     bookings: [],
+    created_at: new Date(),
   };
 
   beforeEach(async () => {

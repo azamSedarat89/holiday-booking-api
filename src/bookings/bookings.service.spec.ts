@@ -1,159 +1,176 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BookingsService } from './bookings.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Booking } from './entities/booking.entity';
 import { Repository } from 'typeorm';
+import { Booking } from './entities/booking.entity';
 import { DestinationsService } from '../destinations/destinations.service';
 import { UsersService } from '../users/users.service';
-import { PaymentService } from 'src/payments/payment.service';
+import { PaymentService } from '../payments/payment.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BookingStatus } from './enum/bookking-status.enum';
 import { Destination } from 'src/destinations/entities/destination.entity';
 import { User } from 'src/users/entities/user.entity';
-import { UserRole } from 'src/users/enum/user-role.enum';
+
+const mockRepo = () => ({
+  create: jest.fn(),
+  save: jest.fn(),
+  find: jest.fn(),
+  findOne: jest.fn(),
+  remove: jest.fn(),
+});
+
+const mockDestinationsService = () => ({ findOne: jest.fn() });
+const mockUsersService = () => ({ findOne: jest.fn() });
+const mockPaymentService = () => ({ processPayment: jest.fn() });
 
 describe('BookingsService', () => {
   let service: BookingsService;
-  let bookingRepo: Repository<Booking>;
-  let destinationsService: Partial<DestinationsService>;
-  let usersService: Partial<UsersService>;
-  let paymentService: Partial<PaymentService>;
+  let bookingRepo: jest.Mocked<Repository<Booking>>;
+  let destinationsSvc: ReturnType<typeof mockDestinationsService>;
+  let usersSvc: ReturnType<typeof mockUsersService>;
+  let paymentSvc: ReturnType<typeof mockPaymentService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BookingsService,
-        {
-          provide: getRepositoryToken(Booking),
-          useClass: Repository,
-        },
-        {
-          provide: DestinationsService,
-          useValue: {
-            findOne: jest.fn(),
-          },
-        },
-        {
-          provide: UsersService,
-          useValue: {
-            findOne: jest.fn(),
-          },
-        },
-        {
-          provide: PaymentService,
-          useValue: {
-            processPayment: jest.fn(),
-          },
-        },
+        { provide: getRepositoryToken(Booking), useFactory: mockRepo },
+        { provide: DestinationsService, useFactory: mockDestinationsService },
+        { provide: UsersService, useFactory: mockUsersService },
+        { provide: PaymentService, useFactory: mockPaymentService },
       ],
     }).compile();
 
-    service = module.get<BookingsService>(BookingsService);
-    bookingRepo = module.get<Repository<Booking>>(getRepositoryToken(Booking));
-    destinationsService = module.get<DestinationsService>(DestinationsService);
-    usersService = module.get<UsersService>(UsersService);
-    paymentService = module.get<PaymentService>(PaymentService);
+    service = module.get(BookingsService);
+
+    bookingRepo = module.get<jest.Mocked<Repository<Booking>>>(
+      getRepositoryToken(Booking),
+    );
+
+    destinationsSvc = module.get(DestinationsService);
+    usersSvc = module.get(UsersService);
+    paymentSvc = module.get(PaymentService);
   });
 
-  describe('create', () => {
-    const mockCreateDto = {
-      destinationId: 1,
-      startDate: '2025-06-01',
-      endDate: '2025-06-05',
+  describe('create()', () => {
+    const userId = 1;
+    const dto = {
+      destinationId: 10,
+      start_date: '2025-05-20',
+      end_date: '2025-05-22',
     };
 
-    const mockUser = {
-      id: 1,
-      name: 'Amin',
-      email: 'amin@example.com',
-      role: UserRole.USER,
-    };
-    const mockDestination = {
-      id: 1,
-      name: 'Paris',
-      price: 100,
-      description: 'A beautiful city',
-      location: 'France',
-      rating: 4.5,
-      bookings: [],
-    };
-
-    it('should create booking successfully if payment succeeds', async () => {
-      jest
-        .spyOn(destinationsService, 'findOne')
-        .mockResolvedValue(mockDestination);
-      jest.spyOn(usersService, 'findOne').mockResolvedValue(mockUser);
-      jest.spyOn(bookingRepo, 'findOne').mockResolvedValue(null); // no overlap
-      jest.spyOn(paymentService, 'processPayment').mockResolvedValue({
-        status: 'success',
-        transactionId: 'tx123',
-      });
-      jest
-        .spyOn(bookingRepo, 'create')
-        .mockImplementation((data) => data as Booking);
-      jest
-        .spyOn(bookingRepo, 'save')
-        .mockImplementation(async (booking) => booking as Booking);
-
-      const result = await service.create(1, mockCreateDto);
-
-      expect(result.totalPrice).toBe(500); // 5 days * 100
-      expect(result.status).toBe('confirmed');
-      expect(result.transactionId).toBe('tx123');
+    it('throws if start_date is after end_date', async () => {
+      await expect(
+        service.create(userId, {
+          ...dto,
+          start_date: '2025-05-23',
+          end_date: '2025-05-22',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('should throw error if payment fails', async () => {
-      jest
-        .spyOn(destinationsService, 'findOne')
-        .mockResolvedValue(mockDestination as Destination);
-      jest.spyOn(usersService, 'findOne').mockResolvedValue(mockUser as User);
+    it('throws if destination not found', async () => {
+      destinationsSvc.findOne.mockResolvedValue(null);
+      usersSvc.findOne.mockResolvedValue({ id: userId });
 
-      jest.spyOn(bookingRepo, 'findOne').mockResolvedValue(null);
-      jest.spyOn(paymentService, 'processPayment').mockResolvedValue({
-        status: 'failed',
-        errorMessage: 'Insufficient funds',
-      });
-
-      await expect(service.create(1, mockCreateDto)).rejects.toThrow(
-        new BadRequestException('Payment failed: Insufficient funds'),
+      await expect(service.create(userId, dto)).rejects.toBeInstanceOf(
+        NotFoundException,
       );
     });
 
-    it('should throw error if startDate is after endDate', async () => {
-      const invalidDto = {
-        ...mockCreateDto,
-        startDate: '2025-06-10',
-        endDate: '2025-06-05',
-      };
+    it('throws if user not found', async () => {
+      destinationsSvc.findOne.mockResolvedValue({
+        id: dto.destinationId,
+        price: 20,
+      });
+      usersSvc.findOne.mockResolvedValue(null);
 
-      await expect(service.create(1, invalidDto)).rejects.toThrow(
+      await expect(service.create(userId, dto)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('throws on overlapping booking', async () => {
+      destinationsSvc.findOne.mockResolvedValue({
+        id: dto.destinationId,
+        price: 100,
+      });
+      usersSvc.findOne.mockResolvedValue({ id: userId });
+      // bookings.service.spec.ts
+      bookingRepo.findOne.mockResolvedValue({ id: 777 } as unknown as Booking);
+
+      await expect(service.create(userId, dto)).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });
 
-    it('should throw if destination not found', async () => {
-      jest
-        .spyOn(destinationsService, 'findOne')
-        .mockResolvedValue(null as unknown as Destination);
+    it('throws on payment failure', async () => {
+      destinationsSvc.findOne.mockResolvedValue({
+        id: dto.destinationId,
+        price: 50,
+      });
+      usersSvc.findOne.mockResolvedValue({ id: userId });
+      bookingRepo.findOne.mockResolvedValue(null);
+      paymentSvc.processPayment.mockResolvedValue({
+        status: 'failed',
+        errorMessage: 'declined',
+      });
 
-      await expect(service.create(1, mockCreateDto)).rejects.toThrow(
-        new NotFoundException('Destination not found'),
+      await expect(service.create(userId, dto)).rejects.toBeInstanceOf(
+        BadRequestException,
       );
     });
 
-    it('should throw if booking overlaps', async () => {
-      jest
-        .spyOn(destinationsService, 'findOne')
-        .mockResolvedValue(mockDestination);
-      jest.spyOn(usersService, 'findOne').mockResolvedValue(mockUser);
-      jest
-        .spyOn(bookingRepo, 'findOne')
-        .mockResolvedValue({ id: 99 } as Booking); // overlap
+    it('persists and returns booking on success', async () => {
+      const destination = {
+        id: dto.destinationId,
+        price: 50,
+      } as Destination;
 
-      await expect(service.create(1, mockCreateDto)).rejects.toThrow(
-        new BadRequestException(
-          'The destination is already booked for the selected dates',
-        ),
+      const user = {
+        id: userId,
+      } as User;
+
+      const saved = {
+        id: 99,
+        status: BookingStatus.CONFIRMED,
+      } as unknown as Booking;
+
+      destinationsSvc.findOne.mockResolvedValue(destination);
+      usersSvc.findOne.mockResolvedValue(user);
+      bookingRepo.findOne.mockResolvedValue(null);
+      paymentSvc.processPayment.mockResolvedValue({
+        status: 'success',
+        transaction_id: 'tx123',
+      });
+
+      bookingRepo.create.mockReturnValue({
+        id: 0,
+        user,
+        destination,
+        start_date: dto.start_date,
+        end_date: dto.end_date,
+        total_price: 150,
+        status: BookingStatus.CONFIRMED,
+        transaction_id: 'tx123',
+        created_at: new Date(),
+      });
+
+      bookingRepo.save.mockResolvedValue(saved);
+
+      const result = await service.create(userId, dto);
+
+      expect(bookingRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user,
+          destination,
+          total_price: 150,
+          status: BookingStatus.CONFIRMED,
+          transaction_id: 'tx123',
+        }),
       );
+      expect(result).toBe(saved);
     });
   });
 });

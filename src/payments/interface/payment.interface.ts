@@ -1,5 +1,7 @@
+import { PaymentStatus } from '../enum/payment-status.enum';
+
 export interface PaymentResult {
-  status: 'success' | 'failed';
-  transactionId?: string;
+  status: PaymentStatus;
+  transaction_id?: string;
   errorMessage?: string;
 }

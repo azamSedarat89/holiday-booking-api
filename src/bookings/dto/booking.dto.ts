@@ -15,13 +15,13 @@ export class BookingDto {
   destination: DestinationDto;
 
   @ApiProperty()
-  startDate: string;
+  start_date: string;
 
   @ApiProperty()
-  endDate: string;
+  end_date: string;
 
   @ApiProperty()
-  totalPrice: number;
+  total_price: number;
 
   @ApiProperty()
   status: BookingStatus;
@@ -33,10 +33,10 @@ export class BookingDto {
     this.id = data.id;
     this.user = new UserDto(data.user);
     this.destination = new DestinationDto(data.destination);
-    this.startDate = data.startDate;
-    this.endDate = data.endDate;
-    this.totalPrice = data.totalPrice;
+    this.start_date = data.start_date;
+    this.end_date = data.end_date;
+    this.total_price = data.total_price;
     this.status = data.status;
-    this.createdAt = data.createdAt;
+    this.createdAt = data.created_at;
   }
 }

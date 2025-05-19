@@ -56,3 +56,13 @@ export function SwaggerDelete(entity: string, summary?: string) {
     ApiUnauthorizedResponse({ description: 'Unauthorized' }),
   );
 }
+
+export function SwaggerPatch(entity: string, dto: Type, summary?: string) {
+  return applyDecorators(
+    ApiOperation({ summary: summary ?? `Partially update a ${entity}` }),
+    ApiOkResponse({ type: dto }),
+    ApiBadRequestResponse({ description: 'Bad request' }),
+    ApiNotFoundResponse({ description: `${entity} not found` }),
+    ApiUnauthorizedResponse({ description: 'Unauthorized' }),
+  );
+}
